@@ -38,18 +38,40 @@ end
 
 -- start super special coding
 if SERVER then
-  -- call our hook when round starts to begin tracking the movement of the Ambusher
+  local nearbyPlyTable = {}
+  -- call our hook when a player stops moving
   hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
+    -- get all living players
     local plys = util.GetAlivePlayers()
+    -- sort through players until we find the ambusher
     for i = 1, #plys do
       local currPly = plys[i]
       if currPly:GetSubRole() == ROLE_AMBUSHER then
+        -- IF ambusher is moving
         if currPly:GetVelocity():LengthSqr() > 0 then
-          // Is being moved
-          currPly:PrintMessage(HUD_PRINTTALK, "Hello ambusher. You are moving.")
+		  -- reset marker vision
+			
+          -- reset nearby player table
+          nearbyPlyTable = {}
+		  
+        -- IF ambusher is still
         else
-          // Not being moved
-          currPly:PrintMessage(HUD_PRINTTALK, "Hello ambusher. You are standing still.")
+          -- iterate through players again
+          for j = 1, #plys do
+            target = plys[j]
+            -- compare their distance to the ambusher
+            if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
+                table.insert(nearbyPlyTable, target)
+            end
+          end
+			-- print out all nearby players
+			local plyString = ": "
+			for k, v in pairs(nearbyPlyTable) do
+				plyString = plyString .. v:Nick() .. ", "
+			end
+			PrintMessage(HUD_PRINTTALK, "NEAR THESE GUYS" .. plyString)
+			-- empty table to prevent overflow and crashing the client
+			nearbyPlyTable = {}
         end
       end
     end
