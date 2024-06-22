@@ -35,3 +35,25 @@ end
 function ROLE:Initialize()
   roles.SetBaseRole(self, ROLE_TRAITOR)
 end
+
+-- start super special coding
+if SERVER then
+  -- call our hook when round starts to begin tracking the movement of the Ambusher
+  hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
+    local plys = util.GetAlivePlayers()
+    for i = 1, #plys do
+      local currPly = plys[i]
+      if currPly:GetSubRole() == ROLE_AMBUSHER then
+        if currPly:GetVelocity():LengthSqr() > 0 then
+          // Is being moved
+          currPly:PrintMessage(HUD_PRINTTALK, "Hello ambusher. You are moving.")
+        else
+          // Not being moved
+          currPly:PrintMessage(HUD_PRINTTALK, "Hello ambusher. You are standing still.")
+        end
+      end
+    end
+  end)
+
+-- end of if SERVER then
+end
