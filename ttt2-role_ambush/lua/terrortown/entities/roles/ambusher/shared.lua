@@ -42,7 +42,7 @@ if SERVER then
     -- call our hook when a player stops moving
     hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
         -- get all living players
-        local plys = util.GetAlivePlayers()
+        local plys = util.GetActivePlayers()
         -- sort through players until we find the ambusher
         for i = 1, #plys do
             -- check if the current player, i, is an ambusher
@@ -63,23 +63,22 @@ if SERVER then
                         local target = plys[j]
                         -- compare their distance to the ambusher
                         if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
-                            -- add nearby players to a table
-                            table.insert(nearbyPlyTable, target)
+                            -- add nearby players to a table IFF they are not traitors
+							if not (target:GetTeam() == "traitors") then
+								table.insert(nearbyPlyTable, target)
+							end
                         else
                             -- remove marker vision from players not in range (i.e. they run away from you)
                             target:RemoveMarkerVision("ambusher_target")
                         end
                     end
                     -- print out all nearby players
-                    local plyString = ": "
                     for k, v in pairs(nearbyPlyTable) do
-                        plyString = plyString .. v:Nick() .. "(" .. v:GetRoleString() .. ")" .. ", "
                         local mvObject = v:AddMarkerVision("ambusher_target")
                         mvObject:SetOwner(ROLE_AMBUSHER)
                         mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
                         mvObject:SyncToClients()
                     end
-                    PrintMessage(HUD_PRINTTALK, "NEAR THESE GUYS" .. plyString)
                     -- empty table to prevent overflow and crashing the client
                     nearbyPlyTable = {}
                 end
