@@ -49,25 +49,29 @@ if SERVER then
       if currPly:GetSubRole() == ROLE_AMBUSHER then
         -- IF ambusher is moving
         if currPly:GetVelocity():LengthSqr() > 0 then
-		  -- reset marker vision
-			
           -- reset nearby player table
           nearbyPlyTable = {}
-		  
+		  for j = 1, #plys do
+			plys[j]:RemoveMarkerVision("ambusher_target")
+		  end
         -- IF ambusher is still
         else
           -- iterate through players again
           for j = 1, #plys do
-            target = plys[j]
+            local target = plys[j]
             -- compare their distance to the ambusher
             if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
-                table.insert(nearbyPlyTable, target)
+              table.insert(nearbyPlyTable, target)
             end
           end
 			-- print out all nearby players
 			local plyString = ": "
 			for k, v in pairs(nearbyPlyTable) do
-				plyString = plyString .. v:Nick() .. ", "
+				plyString = plyString .. v:Nick() .. "(" .. v:GetRoleString() .. ")" .. ", "
+				local mvObject = v:AddMarkerVision("ambusher_target")
+				mvObject:SetOwner(ROLE_AMBUSHER)
+				mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
+				mvObject:SyncToClients()
 			end
 			PrintMessage(HUD_PRINTTALK, "NEAR THESE GUYS" .. plyString)
 			-- empty table to prevent overflow and crashing the client
@@ -78,4 +82,30 @@ if SERVER then
   end)
 
 -- end of if SERVER then
+end
+
+-- actual wallhacks part
+if CLIENT then
+	local TryT = LANG.TryTranslation
+	local ParT = LANG.GetParamTranslation
+
+	local materialAmbush = Material("vgui/ttt/dynamic/roles/icon_ambush")
+
+	hook.Add("TTT2RenderMarkerVisionInfo", "HUDDrawMarkerVisionAmbusherTargets", function(mvData)
+		local client = LocalPlayer()
+		local ent = mvData:GetEntity()
+		local mvObject = mvData:GetMarkerVisionObject()
+
+		if not client:IsTerror() or not mvObject:IsObjectFor(ent, "ambusher_target") then return end
+
+		local distance = math.Round(util.HammerUnitsToMeters(mvData:GetEntityDistance()), 1)
+
+		mvData:EnableText()
+
+		mvData:AddIcon(materialAmbush)
+		mvData:SetTitle("One of your targets. KILL THEM!")
+
+		mvData:AddDescriptionLine(ParT("marker_vision_distance", {distance = distance}))
+		mvData:AddDescriptionLine(TryT(mvObject:GetVisibleForTranslationKey()), COLOR_SLATEGRAY)
+	end)
 end
