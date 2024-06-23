@@ -61,11 +61,14 @@ if SERVER then
                         -- compare their distance to the ambusher
                         if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
                             -- add marker vision to nearby players if they are not traitors.
-							if not (target:GetTeam() == "traitors") then
+							if not (target:GetTeam() == "traitors") and (target:Alive()) then
 								local mvObject = target:AddMarkerVision("ambusher_target")
 								mvObject:SetOwner(ROLE_AMBUSHER)
 								mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
 								mvObject:SyncToClients()
+							else
+								-- remove marker vision from traitors (they never got it) and dead players (they might have it)
+								target:RemoveMarkerVision("ambusher_target")
 							end
                         else
                             -- remove marker vision from players not in range (i.e. they run away from you)
