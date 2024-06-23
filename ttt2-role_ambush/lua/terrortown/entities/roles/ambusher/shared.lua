@@ -38,7 +38,6 @@ end
 
 -- start super special coding
 if SERVER then
-    local nearbyPlyTable = {}
     -- call our hook when a player stops moving
     hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
         -- get all living players
@@ -50,8 +49,6 @@ if SERVER then
             if currPly:GetSubRole() == ROLE_AMBUSHER then
                 -- IFF ambusher is moving
                 if currPly:GetVelocity():LengthSqr() > 0 then
-                    -- reset nearby player table
-                    nearbyPlyTable = {}
                     for j = 1, #plys do
                         -- remove marker vision from all players when you start moving
                         plys[j]:RemoveMarkerVision("ambusher_target")
@@ -63,24 +60,18 @@ if SERVER then
                         local target = plys[j]
                         -- compare their distance to the ambusher
                         if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
-                            -- add nearby players to a table IFF they are not traitors
+                            -- add marker vision to nearby players if they are not traitors.
 							if not (target:GetTeam() == "traitors") then
-								table.insert(nearbyPlyTable, target)
+								local mvObject = target:AddMarkerVision("ambusher_target")
+								mvObject:SetOwner(ROLE_AMBUSHER)
+								mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
+								mvObject:SyncToClients()
 							end
                         else
                             -- remove marker vision from players not in range (i.e. they run away from you)
                             target:RemoveMarkerVision("ambusher_target")
                         end
                     end
-                    -- print out all nearby players
-                    for k, v in pairs(nearbyPlyTable) do
-                        local mvObject = v:AddMarkerVision("ambusher_target")
-                        mvObject:SetOwner(ROLE_AMBUSHER)
-                        mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
-                        mvObject:SyncToClients()
-                    end
-                    -- empty table to prevent overflow and crashing the client
-                    nearbyPlyTable = {}
                 end
             end
         end
