@@ -101,7 +101,7 @@ if CLIENT then
 		mvData:EnableText()
 
 		mvData:AddIcon(materialAmbush)
-		mvData:SetTitle("One of your targets. KILL THEM!")
+		mvData:SetTitle(ent:Nick() .. " is nearby.")
 
 		mvData:AddDescriptionLine(ParT("marker_vision_distance", {distance = distance}))
 		mvData:AddDescriptionLine(TryT(mvObject:GetVisibleForTranslationKey()), COLOR_SLATEGRAY)
