@@ -49,12 +49,14 @@ if SERVER then
             if currPly:GetSubRole() == ROLE_AMBUSHER then
                 -- IFF ambusher is moving
                 if currPly:GetVelocity():LengthSqr() > 0 then
+					STATUS:RemoveStatus(currPly, "ambusher_damageIncrease")
                     for j = 1, #plys do
-                        -- remove marker vision from all players when you start moving
+                        -- remove marker vision from all players when you start moving 
                         plys[j]:RemoveMarkerVision("ambusher_target")
                     end
                 -- IFF ambusher is still
                 else
+					STATUS:AddStatus(currPly, "ambusher_damageIncrease")
                     -- iterate through players again
                     for j = 1, #plys do
                         local target = plys[j]
@@ -109,4 +111,32 @@ if CLIENT then
 		mvData:AddDescriptionLine(ParT("marker_vision_distance", {distance = distance}))
 		mvData:AddDescriptionLine(TryT(mvObject:GetVisibleForTranslationKey()), COLOR_SLATEGRAY)
 	end)
+end
+
+-- change amount of damage for the ambusher when he stands still
+hook.Add("EntityTakeDamage", "ttt2_ambusher_standing_damage", function(target, dmginfo)
+	-- get the attacker
+	local attacker = dmginfo:GetAttacker()
+
+	-- make sure the attacker is valid and also the attacker must be an ambusher
+	if not IsValid(target) or not target:IsPlayer() then return end
+	if not IsValid(attacker) or not attacker:IsPlayer() then return end
+	if not (attacker:GetRoleString() == "ambusher") then return end
+	
+	if attacker:GetVelocity():LengthSqr() <= 0 then
+		dmginfo:SetDamage(dmginfo:GetDamage() * GetConVar("ttt2_ambusher_standing_dmg_multi"):GetFloat())
+	end
+end)
+
+-- beautiful convar
+CreateConVar("ttt2_ambusher_standing_dmg_multi", "1.5", {FCVAR_ARCHIVE, FCVAR_NOTFIY, FCVAR_REPLICATED})
+function ROLE:AddToSettingsMenu(parent)
+	local form = vgui.CreateTTT2Form(parent, "header_roles_additional")
+	form:MakeSlider({
+		serverConvar = "ttt2_ambusher_standing_dmg_multi",
+		label = "Damage multiplier when standing still: ",
+		min = 1.0,
+		max = 2.0,
+		decimal = 2
+	})
 end
