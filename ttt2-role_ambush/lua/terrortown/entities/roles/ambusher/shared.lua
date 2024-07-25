@@ -36,6 +36,33 @@ function ROLE:Initialize()
     roles.SetBaseRole(self, ROLE_TRAITOR)
 end
 
+-- Give Loadout on respawn and rolechange
+function ROLE:GiveRoleLoadout(ply, isRoleChange)
+	-- get all living players
+    local plys = util.GetActivePlayers()
+	
+	-- iterate through living players
+	for j = 1, #plys do
+		-- remove marker vision from all players when round starts/ends
+		plys[j]:RemoveMarkerVision("ambusher_target")
+	end
+end
+
+-- Remove Loadout on death and rolechange
+function ROLE:RemoveRoleLoadout(ply, isRoleChange)
+	-- remove damage increase on role change if possible
+	STATUS:RemoveStatus(ply, "ambusher_damageIncrease")
+	
+	-- get all living players
+    local plys = util.GetActivePlayers()
+	
+	-- iterate through living players
+	for j = 1, #plys do
+		-- remove marker vision from all players when round starts/ends
+		plys[j]:RemoveMarkerVision("ambusher_target")
+	end
+end
+
 -- start super special coding
 if SERVER then
     -- call our hook when a player stops moving
