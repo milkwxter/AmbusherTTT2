@@ -38,53 +38,95 @@ end
 
 -- start super special coding
 if SERVER then
+    -- call our hook when a player starts to move
+    hook.Add("StartMove", "TTT2AmbusherStartedMoving", function()
+		print("retard alert")
+        -- get all players
+        local plys = player.GetAll()
+
+        -- iterate through all players
+        for i = 1, #plys do
+            -- make sure we only do this for the ambusher role
+            if plys[i]:GetSubRole() ~= ROLE_AMBUSHER then continue end
+
+            -- remove damage bonus
+            STATUS:RemoveStatus(plys[i], "ambusher_damageIncrease")
+
+            -- iterate through living players
+            for j = 1, #plys do
+                -- remove marker vision from all players when you start moving 
+                plys[j]:RemoveMarkerVision("ambusher_target")
+            end
+        end
+    end)
+
     -- call our hook when a player stops moving
     hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
         -- get all living players
         local plys = util.GetActivePlayers()
         -- sort through players until we find the ambusher
         for i = 1, #plys do
-            -- check if the current player, i, is an ambusher
+            -- save current player in for loop
             local currPly = plys[i]
-            if currPly:GetSubRole() == ROLE_AMBUSHER then
-                -- IFF ambusher is moving
-                if currPly:GetVelocity():LengthSqr() > 0 then
-					STATUS:RemoveStatus(currPly, "ambusher_damageIncrease")
-                    for j = 1, #plys do
-                        -- remove marker vision from all players when you start moving 
-                        plys[j]:RemoveMarkerVision("ambusher_target")
-                    end
-                -- IFF ambusher is still
-                else
-					STATUS:AddStatus(currPly, "ambusher_damageIncrease")
-                    -- iterate through players again
-                    for j = 1, #plys do
-                        local target = plys[j]
-                        -- compare their distance to the ambusher
-                        if(currPly:GetPos():DistToSqr(target:GetPos()) < 500 * 500) then
-                            -- add marker vision to nearby players if they are not traitors.
-							if not (target:GetTeam() == "traitors") and (target:Alive()) then
-								local mvData, numOfAmbusherMV = target:GetMarkerVision("ambusher_target")
-								if(numOfAmbusherMV == -1) then
-									local mvObject = target:AddMarkerVision("ambusher_target")
-									mvObject:SetOwner(ROLE_AMBUSHER)
-									mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
-									mvObject:SyncToClients()
-								end
-							else
-								-- remove marker vision from traitors (they never got it) and dead players (they might have it)
-								target:RemoveMarkerVision("ambusher_target")
-							end
-                        else
-                            -- remove marker vision from players not in range (i.e. they run away from you)
-                            target:RemoveMarkerVision("ambusher_target")
-                        end
-                    end
+
+            -- make sure the ply is an ambusher
+            if currPly:GetSubRole() ~= ROLE_AMBUSHER then continue end
+			
+			if currPly:GetVelocity():LengthSqr() > 0 then
+				-- iterate through all players
+				for i = 1, #plys do
+					-- make sure we only do this for the ambusher role
+					if plys[i]:GetSubRole() ~= ROLE_AMBUSHER then continue end
+
+					-- remove damage bonus
+					STATUS:RemoveStatus(plys[i], "ambusher_damageIncrease")
+
+					-- iterate through living players
+					for j = 1, #plys do
+						-- remove marker vision from all players when you start moving 
+						plys[j]:RemoveMarkerVision("ambusher_target")
+					end
+				end
+			
+				-- stop doing math
+				return
+			end
+
+            -- give him a damage buff
+			STATUS:AddStatus(currPly, "ambusher_damageIncrease")
+
+            -- iterate through players again
+            for j = 1, #plys do
+                -- save plys[j] as a variable to mess with
+                local target = plys[j]
+
+                -- compare their distance to the ambusher
+                if(currPly:GetPos():DistToSqr(target:GetPos()) > 500 * 500) then
+                    -- remove marker vision from players not in range (i.e. they run away from you)
+                    target:RemoveMarkerVision("ambusher_target")
+                    -- move to next player in the loop
+                    continue
                 end
+
+                -- add marker vision to nearby players if they are not traitors/jesters or dead
+                if target:GetRealTeam() == TEAM_TRAITOR or target:GetRealTeam() == TEAM_JESTER or not target:IsActive() then
+                    -- remove marker vision from traitors (they never got it) and dead players (they might have it)
+					target:RemoveMarkerVision("ambusher_target")
+                    -- move to next player in the loop
+                    continue
+                end
+				
+                -- do marker vision
+				local mvData, numOfAmbusherMV = target:GetMarkerVision("ambusher_target")
+				if(numOfAmbusherMV == -1) then
+					local mvObject = target:AddMarkerVision("ambusher_target")
+					mvObject:SetOwner(ROLE_AMBUSHER)
+					mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
+					mvObject:SyncToClients()
+				end
             end
         end
     end)
--- end of if SERVER then
 end
 
 -- actual wallhacks part DONT TOUCH!!!!!!!!!
