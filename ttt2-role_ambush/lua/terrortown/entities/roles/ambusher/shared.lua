@@ -38,28 +38,6 @@ end
 
 -- start super special coding
 if SERVER then
-    -- call our hook when a player starts to move
-    hook.Add("StartMove", "TTT2AmbusherStartedMoving", function()
-		print("retard alert")
-        -- get all players
-        local plys = player.GetAll()
-
-        -- iterate through all players
-        for i = 1, #plys do
-            -- make sure we only do this for the ambusher role
-            if plys[i]:GetSubRole() ~= ROLE_AMBUSHER then continue end
-
-            -- remove damage bonus
-            STATUS:RemoveStatus(plys[i], "ambusher_damageIncrease")
-
-            -- iterate through living players
-            for j = 1, #plys do
-                -- remove marker vision from all players when you start moving 
-                plys[j]:RemoveMarkerVision("ambusher_target")
-            end
-        end
-    end)
-
     -- call our hook when a player stops moving
     hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
         -- get all living players
