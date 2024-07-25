@@ -77,20 +77,15 @@ if SERVER then
             -- make sure the ply is an ambusher
             if currPly:GetSubRole() ~= ROLE_AMBUSHER then continue end
 			
+            -- if the ambusher starts to move, remove his stuff
 			if currPly:GetVelocity():LengthSqr() > 0 then
-				-- iterate through all players
-				for i = 1, #plys do
-					-- make sure we only do this for the ambusher role
-					if plys[i]:GetSubRole() ~= ROLE_AMBUSHER then continue end
+				-- remove damage bonus
+				STATUS:RemoveStatus(currPly, "ambusher_damageIncrease")
 
-					-- remove damage bonus
-					STATUS:RemoveStatus(plys[i], "ambusher_damageIncrease")
-
-					-- iterate through living players
-					for j = 1, #plys do
-						-- remove marker vision from all players when you start moving 
-						plys[j]:RemoveMarkerVision("ambusher_target")
-					end
+				-- iterate through living players
+				for j = 1, #plys do
+					-- remove marker vision from all players when you start moving 
+					plys[j]:RemoveMarkerVision("ambusher_target")
 				end
 			
 				-- stop doing math
