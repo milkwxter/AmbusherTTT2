@@ -36,96 +36,76 @@ function ROLE:Initialize()
     roles.SetBaseRole(self, ROLE_TRAITOR)
 end
 
--- Give Loadout on respawn and rolechange
-function ROLE:GiveRoleLoadout(ply, isRoleChange)
+-- remove all ambusher marker visions on round begin
+function GM:TTTBeginRound()
 	-- get all living players
     local plys = util.GetActivePlayers()
 	
 	-- iterate through living players
 	for j = 1, #plys do
-		-- remove marker vision from all players when round starts/ends
-		plys[j]:RemoveMarkerVision("ambusher_target")
-	end
-end
-
--- Remove Loadout on death and rolechange
-function ROLE:RemoveRoleLoadout(ply, isRoleChange)
-	-- remove damage increase on role change if possible
-	STATUS:RemoveStatus(ply, "ambusher_damageIncrease")
-	
-	-- get all living players
-    local plys = util.GetActivePlayers()
-	
-	-- iterate through living players
-	for j = 1, #plys do
-		-- remove marker vision from all players when round starts/ends
-		plys[j]:RemoveMarkerVision("ambusher_target")
+		-- remove marker vision from them
+		markerVision.Remove(plys[j], "ambusher_target")
 	end
 end
 
 -- start super special coding
 if SERVER then
     -- call our hook when a player stops moving
-    hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function()
-        -- get all living players
+    hook.Add("FinishMove", "TTT2AmbusherFinishedMoving", function(ply, mv)
+        -- make sure local player is an ambusher
+		if ply:GetSubRole() ~= ROLE_AMBUSHER then return end
+		
+		-- get all living players
         local plys = util.GetActivePlayers()
-        -- sort through players until we find the ambusher
-        for i = 1, #plys do
-            -- save current player in for loop
-            local currPly = plys[i]
+		
+		-- if the ambusher starts to move, remove his stuff
+		if ply:GetVelocity():LengthSqr() > 0 then
+			-- remove damage bonus
+			STATUS:RemoveStatus(ply, "ambusher_damageIncrease")
 
-            -- make sure the ply is an ambusher
-            if currPly:GetSubRole() ~= ROLE_AMBUSHER then continue end
-			
-            -- if the ambusher starts to move, remove his stuff
-			if currPly:GetVelocity():LengthSqr() > 0 then
-				-- remove damage bonus
-				STATUS:RemoveStatus(currPly, "ambusher_damageIncrease")
-
-				-- iterate through living players
-				for j = 1, #plys do
-					-- remove marker vision from all players when you start moving 
-					plys[j]:RemoveMarkerVision("ambusher_target")
-				end
-			
-				-- stop doing math
-				return
+			-- iterate through living players
+			for i = 1, #plys do
+				-- remove marker vision from all players when you start moving 
+				markerVision.Remove(plys[i], "ambusher_target")
 			end
+		
+			-- stop doing math
+			return
+		end
 
-            -- give him a damage buff
-			STATUS:AddStatus(currPly, "ambusher_damageIncrease")
+		-- give him a damage buff
+		STATUS:AddStatus(ply, "ambusher_damageIncrease")
+		
+        -- sort through players to see who is nearby
+        for i = 1, #plys do
+			-- save plys[i] as a variable to mess with
+			local target = plys[i]
 
-            -- iterate through players again
-            for j = 1, #plys do
-                -- save plys[j] as a variable to mess with
-                local target = plys[j]
-
-                -- compare their distance to the ambusher
-                if(currPly:GetPos():DistToSqr(target:GetPos()) > 500 * 500) then
-                    -- remove marker vision from players not in range (i.e. they run away from you)
-                    target:RemoveMarkerVision("ambusher_target")
-                    -- move to next player in the loop
-                    continue
-                end
-
-                -- add marker vision to nearby players if they are not traitors/jesters or dead
-                if target:GetRealTeam() == TEAM_TRAITOR or target:GetRealTeam() == TEAM_JESTER or not target:IsActive() then
-                    -- remove marker vision from traitors (they never got it) and dead players (they might have it)
-					target:RemoveMarkerVision("ambusher_target")
-                    -- move to next player in the loop
-                    continue
-                end
+			-- compare their distance to the ambusher
+			if(ply:GetPos():DistToSqr(target:GetPos()) > 250000) then
+				if markerVision.Get(target, "ambusher_target") == nil then continue end
 				
-                -- do marker vision
-				local mvData, numOfAmbusherMV = target:GetMarkerVision("ambusher_target")
-				if(numOfAmbusherMV == -1) then
-					local mvObject = target:AddMarkerVision("ambusher_target")
-					mvObject:SetOwner(ROLE_AMBUSHER)
-					mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
-					mvObject:SyncToClients()
-				end
-            end
-        end
+				ply:PrintMessage(HUD_PRINTTALK, target:Nick() .. " was no longer in range! Removed from marker vision. #" .. select(2, markerVision.Get(target, "ambusher_target")))
+				
+				-- remove marker vision from players not in range (i.e. they run away from you)
+				markerVision.Remove(target, "ambusher_target")
+				
+				-- move to next player in the loop
+				continue
+			end
+			
+			-- do marker vision if it doesn't already exist
+			if(target:GetMarkerVision("ambusher_target") == nil) then
+				-- no traitors, jesters, or spectators
+				if target:GetRealTeam() == TEAM_TRAITOR or target:GetRealTeam() == TEAM_JESTER or not target:IsActive() then continue end
+				
+				-- actually add marker vision
+				local mvObject = target:AddMarkerVision("ambusher_target")
+				mvObject:SetOwner(ROLE_AMBUSHER)
+				mvObject:SetVisibleFor(VISIBLE_FOR_ROLE)
+				mvObject:SyncToClients()
+			end
+		end
     end)
 end
 
